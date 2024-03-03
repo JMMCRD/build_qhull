@@ -1,0 +1,227 @@
+# This is a basic workflow that is manually triggered
+
+name: Release Private Build
+
+env:
+  libname: qhull
+
+  vcXXX: vc142
+  vs_toolset: v142
+  VSVER_RANGE: '[16.0,17.0)' 
+  VS20YY: 2019
+
+  VER_MPI: v10.1.1
+  VER_CUDA: 11.8.0
+
+  WindowsSDKVer: 10.0.22621.0
+
+  SOURCE_ROOT_DIR: "Externals"
+  BUILD_ROOT_DIR: "build"
+  INTSTALL_ROOT_DIR: "opt"
+  DOWNLOAD_ROOT_DIR: "downloads"
+
+  dir_root_private_builds: "C:/ws/20240303_PrivateBuilds/for_PCL_1_13_1_static"
+  zipfile_name : "qhull-2020.2/qhull_vc142.zip"
+
+  url_boost: "https://github.com/boostorg/boost/releases/download/boost-1.82.0/boost-1.82.0.zip"
+  dir_boost: "Boost"
+  ver_boost: "1.82.0"
+  url_bzip2: "https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz"
+  dir_bzip2: "bzip2"
+  ver_bzip2: "1.0.8"
+  url_zlib: "https://github.com/madler/zlib/releases/download/v1.3/zlib13.zip"
+  dir_zlib: "zlib"
+  ver_zlib: "1.3"
+  url_eigen3: "https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.zip"
+  dir_eigen3: "Eigen3"
+  ver_eigen3: "3.4.0"
+  url_qhull: "https://github.com/qhull/qhull/archive/refs/tags/2020.2.zip"
+  dir_qhull: "qhull"
+  ver_qhull: "8.0.2"
+  url_flann: "https://github.com/flann-lib/flann/archive/refs/tags/1.9.1.zip"
+  dir_flann: "flann"
+  ver_flann: "1.9.1"
+  url_vtk: "https://github.com/Kitware/VTK/archive/refs/tags/v9.2.6.zip"
+  dir_vtk: "VTK"
+  ver_vtk: "9.2.6"
+  url_pcl: "https://github.com/PointCloudLibrary/pcl/releases/download/pcl-1.13.1/source.zip"
+  dir_pcl: "PCL"
+  ver_pcl: "1.13.1"
+  url_open3d: "https://github.com/isl-org/Open3D/archive/refs/tags/v0.17.0.zip"
+  dir_open3d: "Open3D"
+  ver_open3d: "0.17.0"
+  
+  
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
+on:
+  workflow_dispatch:
+
+jobs:
+  generate_version_string:
+    runs-on: ubuntu-latest
+    outputs:
+      myreleasename: ${{ steps.get_my_envs.outputs.myreleasename }}
+      mytagname: ${{ steps.get_my_envs.outputs.mytagname }}
+      mycommitid: ${{ steps.get_commit_id_myself.outputs.commit_id_myself }}
+    steps:
+    - name: Clone myself
+      uses: actions/checkout@v4
+      with:
+        path: mysource
+        fetch-depth: 0
+
+    ## Commit ID の取得
+    - name: Get Commit ID Myself
+      id: get_commit_id_myself
+      working-directory: mysource
+      shell: pwsh
+      run: |
+        $commit_id_myself = "$(git rev-parse HEAD)"
+        echo "commit_id_myself=${commit_id_myself}"
+        echo "commit_id_myself=${commit_id_myself}" >> $env:GITHUB_OUTPUT
+
+    - name: Generate Version Strings
+      id: get_my_envs
+      shell: pwsh
+      working-directory: mysource
+      run: |
+        # 現在のUTC時間を取得
+        $nowUtc = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        # JSTタイムゾーンを取得
+        $jstTimeZone = [System.TimeZoneInfo]::FindSystemTimeZoneById("Tokyo Standard Time")
+        # UTC時間をJSTに変換
+        $nowJst = [System.TimeZoneInfo]::ConvertTimeFromUtc($nowUtc, $jstTimeZone)
+        # 日付を文字列に変換
+        $dateString = $nowJst.ToString("yyyy.MM.dd")
+
+        # 結果を表示
+        Write-Output $dateString
+
+        $mytagname="v${dateString}-${{ github.run_number }}-${{ github.run_attempt }}"
+
+        echo "mytagname = ${mytagname}"
+
+        git tag | Write-Output
+        
+        $TAG_EXISTS = (git tag | Where-Object { $_ -eq ${mytagname} }).Count
+        if (${TAG_EXISTS} -eq 1) {
+            Write-Output "Tag ${mytagname} exists."
+            exit 1
+        } else {
+            Write-Output "Tag ${mytagname} does not exist."
+        }
+        
+        $myreleasename="Release ${dateString}-${{ github.run_number }}-${{ github.run_attempt }}"
+        echo "myreleasename: ${myreleasename}"
+        echo "myreleasename=${myreleasename}" >> $env:GITHUB_OUTPUT
+
+        echo "mytagname=${mytagname}" >> $env:GITHUB_OUTPUT
+      
+    - name: Receive Version String
+      shell: pwsh
+      run: |
+        echo "my version is ${{ steps.get_my_envs.outputs.myreleasename }}"
+
+  create_tag:
+    name: Create Tag
+    runs-on: self-hosted
+    needs: [generate_version_string]
+    steps:
+      - name: 'Cleanup build folder'
+        shell: bash
+        run: |
+          pwd
+          echo cleanup...
+          rm -rf ./* || true
+          rm -rf ./.??* || true
+          echo cleanup finished
+          ls -Rla ./
+
+      ### 自リポジトリ
+      - name: Clone myself
+        uses: actions/checkout@v4
+        with:
+          path: mysource
+          ref: main
+
+      ### アーカイブ作成
+      - name: Archive production artifacts
+        id: archive_artifacts
+        shell: pwsh
+        run: |
+          $list_split_path = "${{ env.zipfile_name}}" -split '/'
+          $trunk_name = $list_split_path[0]
+          $zipfile = "${trunk_name}_${{ env.vcXXX }}_private.zip"
+          echo "zipfile=${zipfile}"
+          echo "zipfile=${zipfile}" >> $env:GITHUB_OUTPUT
+          $src = (Join-Path -Path ${{ env.dir_root_private_builds}} -ChildPath ${{ env.zipfile_name}})
+          $dst = "./$zipfile"
+          Copy-Item $src -Destination $dst -Force
+
+      ### タグ作成
+      - name: Create tag
+        working-directory: mysource
+        run: |
+          git tag ${{ needs.generate_version_string.outputs.mytagname }}
+          git push origin ${{ needs.generate_version_string.outputs.mytagname }}
+
+      ### リリース作成
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1.1.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN_BUILD_PUB_LIBS }}
+        with:
+          tag_name: ${{ needs.generate_version_string.outputs.mytagname }}
+          release_name: ${{ needs.generate_version_string.outputs.myreleasename }}
+          draft: false
+          body: |
+            Automtically created by workflow of id ${{ github.run_id }}, number ${{ github.run_number }}, attempt ${{ github.run_attempt }}
+            - ${{ github.repository }}
+              - repo  : `${{ github.repositoryUrl }}`
+              - branch: `main`
+              - sha1  : `${{ needs.generate_version_string.outputs.mycommitid }}`
+            - Toolset
+              - ${{ env.vcXXX }}
+              - MPI ${{ env.VER_MPI }}
+              - CUDA v${{ env.VER_CUDA }}
+            - ${{ env.dir_boost }}
+              - ${{ env.ver_boost }}
+              - ${{ env.url_boost }}
+            - ${{ env.dir_bzip2 }}
+              - ${{ env.ver_bzip2 }}
+              - ${{ env.url_bzip2 }}
+            - ${{ env.dir_zlib }}
+              - ${{ env.ver_zlib }}
+              - ${{ env.url_zlib }}
+            - ${{ env.dir_eigen3 }}
+              - ${{ env.ver_eigen3 }}
+              - ${{ env.url_eigen3 }}
+            - ${{ env.dir_qhull }}
+              - ${{ env.ver_qhull }}
+              - ${{ env.url_qhull }}
+            - ${{ env.dir_flann }}
+              - ${{ env.ver_flann }}
+              - ${{ env.url_flann }}
+            - ${{ env.dir_vtk }}
+              - ${{ env.ver_vtk }}
+              - ${{ env.url_vtk }}
+            - ${{ env.dir_pcl }}
+              - ${{ env.ver_pcl }}
+              - ${{ env.url_pcl }}
+            - ${{ env.dir_open3d }}
+              - ${{ env.ver_open3d }}
+              - ${{ env.url_open3d }}
+        
+      ### Upload
+      - name: Upload Release Asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN_BUILD_PUB_LIBS }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./${{ steps.archive_artifacts.outputs.zipfile }}
+          asset_name: ${{ steps.archive_artifacts.outputs.zipfile }}
+          asset_content_type: application/zip
