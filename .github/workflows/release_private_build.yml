@@ -5,13 +5,13 @@ name: Release Private Build
 env:
   libname: qhull
 
-  vcXXX: vc142
-  vs_toolset: v142
-  VSVER_RANGE: '[16.0,17.0)' 
-  VS20YY: 2019
+  vcXXX: vc143
+  vs_toolset: v143
+  VSVER_RANGE: '[17.0,18.0)' 
+  VS20YY: 2022
 
   VER_MPI: v10.1.1
-  VER_CUDA: 11.8.0
+  VER_CUDA: 12.8.0
 
   WindowsSDKVer: 10.0.22621.0
 
@@ -20,37 +20,48 @@ env:
   INTSTALL_ROOT_DIR: "opt"
   DOWNLOAD_ROOT_DIR: "downloads"
 
-  dir_root_private_builds: "C:/ws/20240303_PrivateBuilds/for_PCL_1_13_1_static"
-  zipfile_name : "qhull-2020.2/qhull_vc142.zip"
+  dir_root_private_builds: "C:/ws/20250916_PrivateBuilds/PCL_1_15_1_and_Open3D_0_19_0"
+  zipfile_name : "qhull-2020.2/qhull_bin.zip"
 
-  url_boost: "https://github.com/boostorg/boost/releases/download/boost-1.82.0/boost-1.82.0.zip"
+  url_boost: "https://github.com/boostorg/boost/releases/download/boost-1.87.0/boost-1.87.0.zip"
   dir_boost: "Boost"
-  ver_boost: "1.82.0"
+  ver_boost: "1.87.0"
   url_bzip2: "https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz"
   dir_bzip2: "bzip2"
   ver_bzip2: "1.0.8"
-  url_zlib: "https://github.com/madler/zlib/releases/download/v1.3/zlib13.zip"
+  url_zlib: "https://zlib.net/zlib131.zip"
   dir_zlib: "zlib"
-  ver_zlib: "1.3"
+  ver_zlib: "1.3.1"
   url_eigen3: "https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.zip"
   dir_eigen3: "Eigen3"
   ver_eigen3: "3.4.0"
   url_qhull: "https://github.com/qhull/qhull/archive/refs/tags/2020.2.zip"
   dir_qhull: "qhull"
   ver_qhull: "8.0.2"
-  url_flann: "https://github.com/flann-lib/flann/archive/refs/tags/1.9.1.zip"
+  url_flann: "https://github.com/flann-lib/flann/archive/refs/tags/1.9.2.zip"
   dir_flann: "flann"
-  ver_flann: "1.9.1"
-  url_vtk: "https://github.com/Kitware/VTK/archive/refs/tags/v9.2.6.zip"
+  ver_flann: "1.9.2"
+  url_lz4: "https://github.com/lz4/lz4/archive/refs/tags/v1.9.4.zip"
+  dir_lz4: "lz4"
+  ver_lz4: "1.9.4"
+  url_vtk: "https://github.com/Kitware/VTK/archive/refs/tags/v9.5.1.zip"
   dir_vtk: "VTK"
-  ver_vtk: "9.2.6"
-  url_pcl: "https://github.com/PointCloudLibrary/pcl/releases/download/pcl-1.13.1/source.zip"
+  ver_vtk: "9.5.1"
+  url_nanoflann: "https://github.com/jlblancoc/nanoflann/archive/refs/tags/v1.7.1.zip"
+  dir_nanoflann: "nanoflann"
+  ver_nanoflann: "1.7.1"
+  url_pcl: "https://github.com/PointCloudLibrary/pcl/releases/download/pcl-1.15.1/source.zip"
   dir_pcl: "PCL"
-  ver_pcl: "1.13.1"
+  ver_pcl: "1.15.1"
+  url_tbb: "https://github.com/uxlfoundation/oneTBB/archive/refs/tags/v2022.2.0.zip"
+  dir_tbb: "TBB"
+  ver_tbb: "2022.2.0"
+  url_embree: "https://github.com/RenderKit/embree/archive/refs/tags/v4.4.0.zip"
+  dir_embree: "embree"
+  ver_embree: "4.4.0"
   url_open3d: "https://github.com/isl-org/Open3D/archive/refs/tags/v0.17.0.zip"
   dir_open3d: "Open3D"
   ver_open3d: "0.17.0"
-  
   
 # Controls when the action will run. Workflow runs when manually triggered using the UI
 # or API.
@@ -204,12 +215,24 @@ jobs:
             - ${{ env.dir_flann }}
               - ${{ env.ver_flann }}
               - ${{ env.url_flann }}
+            - ${{ env.dir_lz4 }}
+              - ${{ env.ver_lz4 }}
+              - ${{ env.url_lz4 }}
             - ${{ env.dir_vtk }}
               - ${{ env.ver_vtk }}
               - ${{ env.url_vtk }}
+            - ${{ env.dir_nanoflann }}
+              - ${{ env.ver_nanoflann }}
+              - ${{ env.url_nanoflann }}
             - ${{ env.dir_pcl }}
               - ${{ env.ver_pcl }}
               - ${{ env.url_pcl }}
+            - ${{ env.dir_tbb }}
+              - ${{ env.ver_tbb }}
+              - ${{ env.url_tbb }}
+            - ${{ env.dir_embree }}
+              - ${{ env.ver_embree }}
+              - ${{ env.url_embree }}
             - ${{ env.dir_open3d }}
               - ${{ env.ver_open3d }}
               - ${{ env.url_open3d }}
